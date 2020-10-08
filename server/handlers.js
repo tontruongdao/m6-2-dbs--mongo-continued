@@ -124,10 +124,46 @@ const bookSeat = async (req, res) => {
 
   state.bookedSeats[seatId] = true;
 
-  return res.status(200).json({
-    status: 200,
-    success: true,
-  });
+  const client = await MongoClient(MONGO_URI, options);
+  await client.connect();
+
+  try {
+    const query = { _id: _id };
+    console.log("My Query is:", query);
+
+    //passes a json object that will be updated via the $set call
+
+    const newValues = {
+      $set: {
+        expiration,
+        fullName,
+        email,
+        creditCard,
+        isBooked: true,
+      },
+    };
+    console.log("The Booking info is:", newValues);
+    //Access the database
+    const db = client.db("exercise_1");
+
+    //Access the Greetings collections and insert the data
+    const r = await db.collection("seats").updateOne(query, newValues);
+    // console.log(r);
+    assert.strictEqual(1, r.matchedCount);
+    assert.strictEqual(1, r.modifiedCount);
+    client.close();
+    return res.status(200).json({
+      status: 200,
+      success: true,
+    });
+  } catch (error) {
+    console.log(error);
+    client.close();
+    return res.status(400).json({
+      status: 400,
+      success: false,
+    });
+  }
 };
 
 module.exports = { getSeats, bookSeat };
